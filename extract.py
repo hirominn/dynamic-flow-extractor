@@ -3,14 +3,7 @@ import numpy as np
 import cv2
 import colorsys
 
-def main():
-    os.makedirs('masks', exist_ok=True)
-    os.makedirs('result', exist_ok=True)
-
-    masks = np.load('data/mask_data.npy')
-    bboxes = np.load('data/bbox_data.npy')
-    classes = np.load('data/class_data.npy')
-    flow = cv2.imread('data/out_44_to_out_45.png')
+def calc_iou(flow, masks, bboxes, classes):
     env_flow = flow
 
     ### Calclte environment flow ###
@@ -83,8 +76,29 @@ def main():
     #         blask = np.zeros((384, 640), dtype=int)
     #         for px in solutions:
     #             black[px[0]][px[1]] = 255.0
-            
-        
+
+def gen_flow():
+    flow = cv2.imread('data/out_44_to_out_45.png')
+    return flow
+
+def gen_mask():
+    masks = np.load('data/mask_data.npy')
+    bboxes = np.load('data/bbox_data.npy')
+    classes = np.load('data/class_data.npy')        
+    return masks, bboxes, classes
+
+def load_models():
+    print("loading")
+
+def init():
+    load_models()
 
 if __name__ == '__main__':
-    main()
+    os.makedirs('masks', exist_ok=True)
+    os.makedirs('result', exist_ok=True)
+
+    init()
+
+    flow = gen_flow()
+    masks, bboxes, classes = gen_mask()
+    calc_iou(flow, masks, bboxes, classes)
