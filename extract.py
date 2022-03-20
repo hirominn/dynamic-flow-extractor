@@ -2,6 +2,7 @@ import os
 import numpy as np
 import cv2
 import colorsys
+from yolact import gen_mask
 
 def calc_iou(flow, masks, bboxes, classes):
     env_flow = flow
@@ -81,11 +82,11 @@ def gen_flow():
     flow = cv2.imread('data/out_44_to_out_45.png')
     return flow
 
-def gen_mask():
-    masks = np.load('data/mask_data.npy')
-    bboxes = np.load('data/bbox_data.npy')
-    classes = np.load('data/class_data.npy')        
-    return masks, bboxes, classes
+# def gen_mask():
+#     masks = np.load('data/mask_data.npy')
+#     bboxes = np.load('data/bbox_data.npy')
+#     classes = np.load('data/class_data.npy')        
+#     return masks, bboxes, classes
 
 def load_models():
     print("loading")
@@ -98,7 +99,11 @@ if __name__ == '__main__':
     os.makedirs('result', exist_ok=True)
 
     init()
-
+    trained_model='yolact/weights/yolact_plus_resnet50_54_800000.pth'
+    net = gen_mask.prepare_net(trained_model)
+    cam_image = cv2.imread('data/out_44.jpg')
+    
     flow = gen_flow()
-    masks, bboxes, classes = gen_mask()
+    masks, bboxes, classes = gen_mask.gen_mask(net, cam_image)
+    print(classes)
     calc_iou(flow, masks, bboxes, classes)
