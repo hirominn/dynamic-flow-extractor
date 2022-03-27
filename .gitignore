@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+data/
+masks/
+result/
+*.npy
+masks2/
+demo-frames/
+/*.dat

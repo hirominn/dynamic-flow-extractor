@@ -1,0 +1,6 @@
+[submodule "RAFT"]
+	path = RAFT
+	url = https://github.com/hirominn/RAFT.git
+[submodule "yolact"]
+	path = yolact
+	url = https://github.com/hirominn/yolact.git
