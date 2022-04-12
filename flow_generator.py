@@ -27,6 +27,7 @@ if __name__ == '__main__':
             while mm_status.ReadString() == 'rply':
                 continue
             cnt += 1
+            print(cnt)
 
             stop_wait = time.perf_counter()
             print("Wait:", (stop_wait - start_wait) * 1000, "ms")
@@ -36,12 +37,10 @@ if __name__ == '__main__':
 
             status = mm_status.ReadString()
             if status == 'frst':
-                print('hi')
                 image_now = gen_flow.load_image_from_cv(mm_image_in.ReadImage())
                 mm_status.WriteString('rply')
                 continue
             else:
-                print('HI')
                 image_pre = image_now
                 start_load = time.perf_counter()
                 image_now = gen_flow.load_image_from_cv(mm_image_in.ReadImage())
