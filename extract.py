@@ -105,7 +105,7 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
     flow_rec_diff = cv.subtract(flow_clip, hand)
     # cv.imwrite('result/flow_rec_diff.png', flow_rec_diff)
 
-    moved_object_image = np.zeros((384, 640), dtype=np.uint8)
+    moved_object_image = np.zeros((img_height, img_width), dtype=np.uint8)
 
     items = ''
     for j in range(len(masks)):
@@ -120,9 +120,7 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
         union = np.logical_or(result, mask)
         iou_score = np.sum(intersection) / np.sum(union)
 
-        if iou_score > 0.1:
-            items += '{},{},{}/{}/{}/{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/640, bboxes[j][1]/384, bboxes[j][2]/640 - bboxes[j][0]/640, bboxes[j][3]/384 - bboxes[j][1]/384, iou_score)
-            # items += 'class:{},bbox:{}/{}/{}/{},iou:{}\n'.format(classes[j], iou_score, bboxes[j][0]/640, bboxes[j][1]/384, bboxes[j][2]/640, bboxes[j][3]/384)
+        if(iou_score > 0.1): items += '{},{},{}/{}/{}/{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, iou_score)
         if(iou_score > 0.1):
             moved_object_image = cv.bitwise_or(moved_object_image, mask)
     if(isDebug) : cv.imwrite('result/moved_object_image.png', moved_object_image)
@@ -136,8 +134,19 @@ if __name__ == '__main__':
     os.makedirs('result/moved_objects', exist_ok=True)
 
     isDebug = False
+    global img_width
+    global img_height
+    # img_width = 640
+    # img_height = 384
+    # img_width = 424
+    # img_height = 256
+    # img_width = 336
+    # img_height = 200
+    img_width = 256
+    img_height = 152
+    
 
-    shape = (384, 640, 3)
+    shape = (img_height, img_width, 3)
     img_size = np.prod(shape)
     mm_image_in = mmap_manager.mmapManager('./flow_img_in.dat', img_size, shape)
     mm_image_out = mmap_manager.mmapManager('./flow_img_out.dat', img_size, shape)
@@ -183,6 +192,8 @@ if __name__ == '__main__':
             # print('received image data')
             tmp = np.frombuffer(data, np.uint8, -1)
             img = cv.imdecode(tmp, cv.IMREAD_COLOR)
+            cam_image = cv.resize(img, dsize=(640, 384), interpolation = cv.INTER_NEAREST)
+            cam_image = cv.resize(cam_image, dsize=(img_width, img_height), interpolation = cv.INTER_NEAREST)
             if(isDebug): cv.imwrite('result/camera_image.png', cam_image)
 
             mm_image_in.WriteImage(cam_image)

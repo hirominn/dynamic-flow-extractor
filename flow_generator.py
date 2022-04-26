@@ -9,7 +9,17 @@ from RAFT import gen_flow
 
 if __name__ == '__main__':
     try:
-        shape = (384, 640, 3)
+        # img_width = 640
+        # img_height = 384
+        # img_width = 424
+        # img_height = 256
+        # img_width = 336
+        # img_height = 200
+        img_width = 256
+        img_height = 152
+
+        # shape = (384, 640, 3)
+        shape = (img_height, img_width, 3)
         img_size = np.prod(shape)
         mm_image_in = mmap_manager.mmapManager('./flow_img_in.dat', img_size, shape)
         mm_image_out = mmap_manager.mmapManager('./flow_img_out.dat', img_size, shape)
