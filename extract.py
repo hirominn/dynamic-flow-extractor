@@ -13,8 +13,10 @@ from scipy.spatial import distance
 from util import mmap_manager
 from yolact import gen_mask, yolact
 
-def calc_iou(flow, masks, bboxes, classes):
-    cv.imwrite('result/flow.png', flow)
+def calc_iou(flow, masks, bboxes, classes, isDebug):
+    items = ''
+
+    if(isDebug): cv.imwrite('result/flow.png', flow)
     env_flow = flow
 
     # end if the image has no hand
@@ -42,7 +44,7 @@ def calc_iou(flow, masks, bboxes, classes):
         obj = cv.bitwise_not(obj)
         # cv.imwrite('masks2/mask_{}.png'.format(j), obj)
         env_flow = cv.bitwise_and(env_flow, env_flow, mask=obj)
-    cv.imwrite('result/env_flow.png', env_flow)
+    if(isDebug): cv.imwrite('result/env_flow.png', env_flow)
 
     # print(env_flow.shape)
     ave_bgr = np.average(env_flow[np.where(env_flow[:, :, 0] + env_flow[:, :, 1] + env_flow[:, :, 2] != 0)], axis=0)
@@ -92,9 +94,9 @@ def calc_iou(flow, masks, bboxes, classes):
     #     print('low')
     #     flow_clip = mask=cv.inRange(flow_hsv, (0, 25, 0), (180, 255, 255))
 
-    cv.imwrite('result/pair_flow.png', flow)
-    cv.imwrite('result/flow_clip.png', flow_clip)
-    cv.imwrite('result/moved_objects/{:0>4}.jpg'.format(cnt), flow_clip)
+    if(isDebug): cv.imwrite('result/pair_flow.png', flow)
+    if(isDebug): cv.imwrite('result/flow_clip.png', flow_clip)
+    if(isDebug): cv.imwrite('result/moved_objects/{:0>4}.jpg'.format(cnt), flow_clip)
 
     max_sat = np.max(flow_hsv[np.where(env_flow[:, :, 0] + env_flow[:, :, 1] + env_flow[:, :, 2] != 0)], axis=0)[1]
 
@@ -123,7 +125,7 @@ def calc_iou(flow, masks, bboxes, classes):
             # items += 'class:{},bbox:{}/{}/{}/{},iou:{}\n'.format(classes[j], iou_score, bboxes[j][0]/640, bboxes[j][1]/384, bboxes[j][2]/640, bboxes[j][3]/384)
         if(iou_score > 0.1):
             moved_object_image = cv.bitwise_or(moved_object_image, mask)
-    cv.imwrite('result/moved_object_image.png', moved_object_image)
+    if(isDebug) : cv.imwrite('result/moved_object_image.png', moved_object_image)
     if items == '':
         return ' '
     return items
@@ -133,6 +135,7 @@ if __name__ == '__main__':
     os.makedirs('result', exist_ok=True)
     os.makedirs('result/moved_objects', exist_ok=True)
 
+    isDebug = False
 
     shape = (384, 640, 3)
     img_size = np.prod(shape)
@@ -180,7 +183,7 @@ if __name__ == '__main__':
             # print('received image data')
             tmp = np.frombuffer(data, np.uint8, -1)
             img = cv.imdecode(tmp, cv.IMREAD_COLOR)
-            cam_image = cv.resize(img, dsize=(640, 384))
+            if(isDebug): cv.imwrite('result/camera_image.png', cam_image)
 
             mm_image_in.WriteImage(cam_image)
             if cnt == 1:
