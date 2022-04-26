@@ -22,7 +22,7 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
     # end if the image has no hand
     if next((f for f in classes if f == 0), None) == None:
         print('no hands')
-        return ' '
+        return printItems(classes, bboxes)
 
     print(classes)
 
@@ -76,23 +76,13 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
     
     print("moved objects :", [classes[x] for x in range(len(classes)) if diff_from_env[x] > 0.05 and diff_from_hand[x] < 0.03])
 
-    if(ave_hsv[0]*180 + 30 >= 180):
-        flow_clip = cv.inRange(flow_hsv, ((ave_hsv[0]*180 + 30)%180, 0, 0), (ave_hsv[0]*180 - 30, 255, 255))
-    elif(ave_hsv[0]*180 < 30):
-        flow_clip = cv.inRange(flow_hsv, (ave_hsv[0]*180 + 30, 0, 0), (ave_hsv[0]*180 + 180 - 30, 255, 255))
+    hue_width = 30
+    if(ave_hsv[0]*180 + hue_width >= 180):
+        flow_clip = cv.inRange(flow_hsv, ((ave_hsv[0]*180 + hue_width)%180, 0, 0), (ave_hsv[0]*180 - hue_width, 255, 255))
+    elif(ave_hsv[0]*180 < hue_width):
+        flow_clip = cv.inRange(flow_hsv, (ave_hsv[0]*180 + hue_width, 0, 0), (ave_hsv[0]*180 + 180 - hue_width, 255, 255))
     else:
-        flow_clip = cv.bitwise_not(cv.inRange(flow_hsv, (max(0, ave_hsv[0]*180 - 30), 0, 0), (min(255, ave_hsv[0]*180 + 30), 255, 255)))
-    # if var_sat > 20:
-    #     print('high')
-    #     if(ave_hsv[0]*180 + 45 >= 180):
-    #         flow_clip = cv.inRange(flow_hsv, ((ave_hsv[0]*180 + 45)%180, 0, 0), (ave_hsv[0]*180 - 45, 255, 255))
-    #     elif(ave_hsv[0]*180 < 45):
-    #         flow_clip = cv.inRange(flow_hsv, (ave_hsv[0]*180 + 45, 0, 0), (ave_hsv[0]*180 + 180 - 45, 255, 255))
-    #     else:
-    #         flow_clip = cv.bitwise_not(cv.inRange(flow_hsv, (max(0, ave_hsv[0]*180 - 45), 0, 0), (min(255, ave_hsv[0]*180 + 45), 255, 255)))
-    # else :
-    #     print('low')
-    #     flow_clip = mask=cv.inRange(flow_hsv, (0, 25, 0), (180, 255, 255))
+        flow_clip = cv.bitwise_not(cv.inRange(flow_hsv, (max(0, ave_hsv[0]*180 - hue_width), 0, 0), (min(255, ave_hsv[0]*180 + hue_width), 255, 255)))
 
     if(isDebug): cv.imwrite('result/pair_flow.png', flow)
     if(isDebug): cv.imwrite('result/flow_clip.png', flow_clip)
@@ -107,7 +97,6 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
 
     moved_object_image = np.zeros((img_height, img_width), dtype=np.uint8)
 
-    items = ''
     for j in range(len(masks)):
         mask = (masks[j]*255).astype(np.uint8)
         # cv.imwrite('masks/mask_{}.png'.format(j), black)
@@ -179,9 +168,9 @@ if __name__ == '__main__':
     global cnt
     cnt = 0
 
-    images = glob.glob(os.path.join(sys.path[0], 'demo-frames', '*.png')) + \
-            glob.glob(os.path.join(sys.path[0], 'demo-frames', '*.jpg'))
-    images = sorted(images)
+    # images = glob.glob(os.path.join(sys.path[0], 'demo-frames', '*.png')) + \
+    #         glob.glob(os.path.join(sys.path[0], 'demo-frames', '*.jpg'))
+    # images = sorted(images)
     # for imfile in images:
     try:
         while True:
@@ -220,16 +209,13 @@ if __name__ == '__main__':
 
             if cnt > 1:
                 start_iou = time.perf_counter()
-                items = calc_iou(flow, masks, bboxes, classes)
+                items = calc_iou(flow, masks, bboxes, classes, isDebug)
                 stop_iou = time.perf_counter()
                 # print("Calculate IoU:", (stop_iou - start_iou) * 1000, "ms")
-
                 # with open("runs/detect/exp/labels/out.txt", "r") as file:
                 #     inferred_labels = file.read()
                 clientsock.send(bytes(items, 'utf-8'))
                 print(items)
-                # clientsock.send(bytes('person 0 0.253125 0.559896 0.240625 0.4375 0.679568', 'utf-8'))
-                # print(items)
             else: 
                 print('')
                 clientsock.send(bytes('person 0 0.253125 0.559896 0.240625 0.4375 0.679568', 'utf-8'))
