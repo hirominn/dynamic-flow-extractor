@@ -136,8 +136,8 @@ if __name__ == '__main__':
 
     shape = (384, 640, 3)
     img_size = np.prod(shape)
-    mm_image_in = mmap_manager.mmapManager('./flow_img_in.dat', img_size)
-    mm_image_out = mmap_manager.mmapManager('./flow_img_out.dat', img_size)
+    mm_image_in = mmap_manager.mmapManager('./flow_img_in.dat', img_size, shape)
+    mm_image_out = mmap_manager.mmapManager('./flow_img_out.dat', img_size, shape)
     mm_status = mmap_manager.mmapManager('./status.dat', 4)
     mm_status.WriteString('frst')
 

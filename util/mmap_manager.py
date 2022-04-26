@@ -6,11 +6,11 @@ import os
 
 class mmapManager:
     # file_name : path to file
-    def __init__(self, file, size) -> None:
+    def __init__(self, file, size, shape = (0, 0, 0)) -> None:
         self._mm = None
         self._file = file
         self._size = size
-        self._shape = (384, 640, 3)
+        self._shape = shape
 
         if not os.path.exists(file):
             self._createMMapFile()
