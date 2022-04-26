@@ -62,7 +62,7 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
     print("var_hue", var_hue, "var_sat :", var_sat, "max_sat :", max_sat)
 
     if var_hue > 300:
-        return ' '
+        return printItems(classes, bboxes)
 
     def calc_euclid_distance_from_env(x):
         return distance.euclidean((x[1] * math.cos(math.radians(x[0] * 2)), x[1] * math.sin(math.radians(x[0] * 2))), (ave_hsv[1] * math.cos(math.radians(ave_hsv[0]*2)), ave_hsv[1] * math.sin(math.radians(ave_hsv[0]*2))))
@@ -126,6 +126,14 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
     if(isDebug) : cv.imwrite('result/moved_object_image.png', moved_object_image)
     if items == '':
         return ' '
+    return items
+
+def printItems(classes, bboxes):
+    items = ''
+    for j in range(len(classes)):
+        items += '{},{},{}/{}/{}/{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, 0)    
+    if(items == ''):
+        items = ' ' 
     return items
 
 if __name__ == '__main__':
