@@ -17,6 +17,8 @@ if __name__ == '__main__':
         # img_height = 200
         img_width = 256
         img_height = 152
+        # img_width = 550
+        # img_height = 330
 
         # shape = (384, 640, 3)
         shape = (img_height, img_width, 3)

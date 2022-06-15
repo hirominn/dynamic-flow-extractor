@@ -44,7 +44,7 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
         obj = cv.bitwise_not(obj)
         # cv.imwrite('masks2/mask_{}.png'.format(j), obj)
         env_flow = cv.bitwise_and(env_flow, env_flow, mask=obj)
-    if(isDebug): cv.imwrite('result/env_flow.png', env_flow)
+    if(isDebug): cv.imwrite('result/env_flow.jpg', env_flow)
 
     # print(env_flow.shape)
     ave_bgr = np.average(env_flow[np.where(env_flow[:, :, 0] + env_flow[:, :, 1] + env_flow[:, :, 2] != 0)], axis=0)
@@ -61,66 +61,54 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
     max_sat = np.max(flow_hsv[np.where(env_flow[:, :, 0] + env_flow[:, :, 1] + env_flow[:, :, 2] != 0)], axis=0)[1]
     print("var_hue", var_hue, "var_sat :", var_sat, "max_sat :", max_sat)
 
-    if var_hue > 300:
-        return printItems(classes, bboxes)
-
     def calc_euclid_distance_from_env(x):
-        return distance.euclidean((x[1] * math.cos(math.radians(x[0] * 2)), x[1] * math.sin(math.radians(x[0] * 2))), (ave_hsv[1] * math.cos(math.radians(ave_hsv[0]*2)), ave_hsv[1] * math.sin(math.radians(ave_hsv[0]*2))))
+        return distance.euclidean((x[1] * 255 * math.cos(math.radians(x[0] * 2*180)), x[1] * 255 * math.sin(math.radians(x[0] * 2*180))), (ave_hsv[1] * 255 * math.cos(math.radians(ave_hsv[0] * 2*180)), ave_hsv[1] * 255 * math.sin(math.radians(ave_hsv[0] * 2*180))))
     diff_from_env = list(map(calc_euclid_distance_from_env, obj_flows))
     # print("diff from env :\n", diff_from_env)
 
     def calc_euclid_distance_from_hand(x):
-        return distance.euclidean((x[1] * math.cos(math.radians(x[0] * 2)), x[1] * math.sin(math.radians(x[0] * 2))), (hand_flow_hsv[1] * math.cos(math.radians(hand_flow_hsv[0]*2)), hand_flow_hsv[1] * math.sin(math.radians(hand_flow_hsv[0]*2))))
+        return distance.euclidean((x[1] * 255 * math.cos(math.radians(x[0] * 2*180)), x[1] * 255 * math.sin(math.radians(x[0] * 2*180))), (hand_flow_hsv[1] * 255 * math.cos(math.radians(hand_flow_hsv[0] * 2*180)), hand_flow_hsv[1] * 255 * math.sin(math.radians(hand_flow_hsv[0] * 2*180))))
     diff_from_hand = list(map(calc_euclid_distance_from_hand, obj_flows))
-    # print("diff from hand:\n", diff_from_hand)
-    
-    print("moved objects :", [classes[x] for x in range(len(classes)) if diff_from_env[x] > 0.05 and diff_from_hand[x] < 0.03])
-
-    hue_width = 30
-    if(ave_hsv[0]*180 + hue_width >= 180):
-        flow_clip = cv.inRange(flow_hsv, ((ave_hsv[0]*180 + hue_width)%180, 0, 0), (ave_hsv[0]*180 - hue_width, 255, 255))
-    elif(ave_hsv[0]*180 < hue_width):
-        flow_clip = cv.inRange(flow_hsv, (ave_hsv[0]*180 + hue_width, 0, 0), (ave_hsv[0]*180 + 180 - hue_width, 255, 255))
-    else:
-        flow_clip = cv.bitwise_not(cv.inRange(flow_hsv, (max(0, ave_hsv[0]*180 - hue_width), 0, 0), (min(255, ave_hsv[0]*180 + hue_width), 255, 255)))
-
-    if(isDebug): cv.imwrite('result/pair_flow.png', flow)
-    if(isDebug): cv.imwrite('result/flow_clip.png', flow_clip)
-    if(isDebug): cv.imwrite('result/moved_objects/{:0>4}.jpg'.format(cnt), flow_clip)
-
-    max_sat = np.max(flow_hsv[np.where(env_flow[:, :, 0] + env_flow[:, :, 1] + env_flow[:, :, 2] != 0)], axis=0)[1]
-
-    # cv.imwrite('result/flow_thick.png', flow_hsv)
-
-    flow_rec_diff = cv.subtract(flow_clip, hand)
-    # cv.imwrite('result/flow_rec_diff.png', flow_rec_diff)
-
-    moved_object_image = np.zeros((img_height, img_width), dtype=np.uint8)
+    # print("diff from hand:\n", diff_from_hand)        
 
     for j in range(len(masks)):
-        mask = (masks[j]*255).astype(np.uint8)
-        # cv.imwrite('masks/mask_{}.png'.format(j), black)
-        bbox = np.array([(bboxes[j][0], bboxes[j][1]), (bboxes[j][2], bboxes[j][1]), (bboxes[j][2], bboxes[j][3]), (bboxes[j][0], bboxes[j][3])])
-        stencil = np.zeros(flow_rec_diff.shape).astype(flow_rec_diff.dtype)
-        cv.fillPoly(stencil, [bbox], [255, 255, 255])
-        result = cv.bitwise_and(flow_rec_diff, stencil)
-        # cv.imwrite('masks/bboxes_{}.png'.format(j), result)
-        intersection = np.logical_and(result, mask)
-        union = np.logical_or(result, mask)
-        iou_score = np.sum(intersection) / np.sum(union)
+        if(lenFromHand(bboxes[j], hand_box) < 0.20):
+            handDist = "near"
+        else:
+            handDist = "far"
+        if(diff_from_env[j] >= 7.5 and diff_from_hand[j] <= 4.0): 
+            print('{}, hand_dist:{}'.format(class_names[classes[j]],lenFromHand(bboxes[j], hand_box)))
+            print('{}, x[0]:{},x[1]:{},diff_env:{:0>4},diff_hand:{:0>4}\n'.format(class_names[classes[j]],obj_flows[j][0] * 180 * 2, obj_flows[j][1] * 255, diff_from_env[j], diff_from_hand[j]))
+            movingRate = 1
+        else :
+            movingRate = 0
+        items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, handDist)
+        # items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, "far")        
+    if(items == ''): items = ' '
 
-        if(iou_score > 0.1): items += '{},{},{}/{}/{}/{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, iou_score)
-        if(iou_score > 0.1):
-            moved_object_image = cv.bitwise_or(moved_object_image, mask)
-    if(isDebug) : cv.imwrite('result/moved_object_image.png', moved_object_image)
-    if items == '':
-        return ' '
+
+    if(isDebug):
+        moved_object_image = np.zeros((img_height, img_width), dtype=np.uint8)
+        for j in range(len(masks)):
+            mask = (masks[j]*255).astype(np.uint8)
+            if(diff_from_env[j] >= 7.5 and diff_from_hand[j] <= 4.0): moved_object_image = cv.bitwise_or(moved_object_image, mask)
+        cv.imwrite('result/moved_object_image.jpg', moved_object_image)
+
+    moved_object_image = np.zeros((img_height, img_width), dtype=np.uint8)
+    for j in range(len(masks)):
+        mask = (masks[j]*255).astype(np.uint8)
+        if(class_names[classes[j]] == "cup" or class_names[classes[j]] == "person"): moved_object_image = cv.bitwise_or(moved_object_image, mask)
+    # cv.imwrite('data_0531/camera_image_{:0>4}_object.jpg'.format(cnt), moved_object_image)
+
     return items
 
 def printItems(classes, bboxes):
+    sorted_items = sorted([x for x in zip(classes, bboxes)], key=lambda x:x[1][0])
     items = ''
-    for j in range(len(classes)):
-        items += '{},{},{}/{}/{}/{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, 0)    
+    # for j in range(len(classes)):
+    #     items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, 0, "far")    
+    for j in sorted_items:
+        items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[j[0]], j[0], j[1][0]/img_width, j[1][1]/img_height, j[1][2]/img_width - j[1][0]/img_width, j[1][3]/img_height - j[1][1]/img_height, 0, "far")    
     if(items == ''):
         items = ' ' 
     return items
@@ -141,7 +129,8 @@ if __name__ == '__main__':
     # img_height = 200
     img_width = 256
     img_height = 152
-    
+    # img_width = 550
+    # img_height = 330
 
     shape = (img_height, img_width, 3)
     img_size = np.prod(shape)
@@ -179,26 +168,30 @@ if __name__ == '__main__':
 
             # cam_image = cv.imread(imfile)
             buffer_size = int.from_bytes(clientsock.recv(8), 'little') # int64 / 8 = 8
-            # print('size :', buffer_size)
             clientsock.send(bytes('received', 'utf-8'))
-            # print('sent ack')
             data = b''
             while len(data) < buffer_size :
-                diffdata = clientsock.recv(buffer_size)
+                try:
+                    diffdata = clientsock.recv(buffer_size)
+                except:
+                    print("exception!")
+                    diffdata = b''
                 data += diffdata
-            # print('received image data')
             tmp = np.frombuffer(data, np.uint8, -1)
-            img = cv.imdecode(tmp, cv.IMREAD_COLOR)
+            try:
+                img = cv.imdecode(tmp, cv.IMREAD_COLOR)
+            except:
+                clientsock.send(bytes('person 0 0.253125 0.559896 0.240625 0.4375 0.679568', 'utf-8'))
+                continue
             cam_image = cv.resize(img, dsize=(640, 384), interpolation = cv.INTER_NEAREST)
             cam_image = cv.resize(cam_image, dsize=(img_width, img_height), interpolation = cv.INTER_NEAREST)
-            if(isDebug): cv.imwrite('result/camera_image.png', cam_image)
+            if(isDebug): cv.imwrite('result/camera_image.jpg', cam_image)
+            # cv.imwrite('data_0531/camera_image_{:0>4}.jpg'.format(cnt), cam_image)
 
             mm_image_in.WriteImage(cam_image)
             if cnt == 1:
-                # print('first')
                 mm_status.WriteString('frst')
             else:
-                # print('sent')
                 mm_status.WriteString('sent')
 
             # generate mask
@@ -215,7 +208,7 @@ if __name__ == '__main__':
                 # with open("runs/detect/exp/labels/out.txt", "r") as file:
                 #     inferred_labels = file.read()
                 clientsock.send(bytes(items, 'utf-8'))
-                print(items)
+                # print(items)
             else: 
                 print('')
                 clientsock.send(bytes('person 0 0.253125 0.559896 0.240625 0.4375 0.679568', 'utf-8'))
