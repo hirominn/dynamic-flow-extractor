@@ -52,8 +52,6 @@ if __name__ == '__main__':
                 image_now = gen_flow.load_image_from_cv(mm_image_in.ReadImage())
                 mm_status.WriteString('rply')
                 continue
-            # elif status == 'mvck':
-            #     mm_image_out.WriteImage(gen_flow.demo(raft_args, raft_model, image_pre, image_now))
             else:
                 image_pre = image_now
                 start_load = time.perf_counter()
