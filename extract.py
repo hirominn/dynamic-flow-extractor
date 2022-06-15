@@ -22,7 +22,7 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
     # end if the image has no hand
     if next((f for f in classes if f == 0), None) == None:
         print('no hands')
-        return printItems(classes, bboxes)
+        return printItems(classes, bboxes), False
 
     print(classes)
 
@@ -71,19 +71,46 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
     diff_from_hand = list(map(calc_euclid_distance_from_hand, obj_flows))
     # print("diff from hand:\n", diff_from_hand)        
 
+    isMoving = False
+    movingItems = []
     for j in range(len(masks)):
-        if(lenFromHand(bboxes[j], hand_box) < 0.20):
-            handDist = "near"
-        else:
-            handDist = "far"
-        if(diff_from_env[j] >= 7.5 and diff_from_hand[j] <= 4.0): 
+        if(diff_from_env[j] >= 7.5 and diff_from_hand[j] <= 4.0 and isHand(classes[j])): 
             print('{}, hand_dist:{}'.format(class_names[classes[j]],lenFromHand(bboxes[j], hand_box)))
             print('{}, x[0]:{},x[1]:{},diff_env:{:0>4},diff_hand:{:0>4}\n'.format(class_names[classes[j]],obj_flows[j][0] * 180 * 2, obj_flows[j][1] * 255, diff_from_env[j], diff_from_hand[j]))
+            movingItems.append(j)
+            isMoving = True
+    if(isMoving):
+        for j in movingItems:
+            if(lenFromHand(bboxes[j], hand_box) < 0.20):
+                handDist = "near"
+            else:
+                handDist = "far"
             movingRate = 1
-        else :
+            items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, handDist)
+    else:
+        for j in range(len(masks)):
+            if(lenFromHand(bboxes[j], hand_box) < 0.20):
+                handDist = "near"
+            else:
+                handDist = "far"
             movingRate = 0
-        items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, handDist)
-        # items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, "far")        
+            items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, handDist)
+
+
+    # for j in range(len(masks)):
+    #     if(lenFromHand(bboxes[j], hand_box) < 0.20):
+    #         handDist = "near"
+    #     else:
+    #         handDist = "far"
+    #     if(diff_from_env[j] >= 7.5 and diff_from_hand[j] <= 4.0): 
+    #         print('{}, hand_dist:{}'.format(class_names[classes[j]],lenFromHand(bboxes[j], hand_box)))
+    #         print('{}, x[0]:{},x[1]:{},diff_env:{:0>4},diff_hand:{:0>4}\n'.format(class_names[classes[j]],obj_flows[j][0] * 180 * 2, obj_flows[j][1] * 255, diff_from_env[j], diff_from_hand[j]))
+    #         movingRate = 1
+    #         isMoving = True
+    #     else :
+    #         movingRate = 0
+    #     items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, handDist)
+    #     # items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, "far")        
     if(items == ''): items = ' '
 
 
@@ -94,13 +121,24 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
             if(diff_from_env[j] >= 7.5 and diff_from_hand[j] <= 4.0): moved_object_image = cv.bitwise_or(moved_object_image, mask)
         cv.imwrite('result/moved_object_image.jpg', moved_object_image)
 
-    moved_object_image = np.zeros((img_height, img_width), dtype=np.uint8)
-    for j in range(len(masks)):
-        mask = (masks[j]*255).astype(np.uint8)
-        if(class_names[classes[j]] == "cup" or class_names[classes[j]] == "person"): moved_object_image = cv.bitwise_or(moved_object_image, mask)
+    # moved_object_image = np.zeros((img_height, img_width), dtype=np.uint8)
+    # for j in range(len(masks)):
+    #     mask = (masks[j]*255).astype(np.uint8)
+    #     if(class_names[classes[j]] == "cup" or class_names[classes[j]] == "person"): moved_object_image = cv.bitwise_or(moved_object_image, mask)
     # cv.imwrite('data_0531/camera_image_{:0>4}_object.jpg'.format(cnt), moved_object_image)
 
-    return items
+    return items, isMoving
+
+def isHand(classId):
+    if(classId == 0): return True
+    else: return True
+
+def lenFromHand(itemBox, handBox):
+    return np.sqrt(pow((itemBox[0]/img_width + itemBox[2]/img_width)/2 - (handBox[0]/img_width + handBox[2]/img_width)/2, 2) + pow(itemBox[1]/img_height - handBox[1]/img_height, 2))
+
+def bboxDist(itemBox, handBox):
+    return np.sqrt(pow((itemBox[0]/img_width + itemBox[2]/img_width)/2 - (handBox[0]/img_width + handBox[2]/img_width)/2, 2) + pow(itemBox[1]/img_height - handBox[1]/img_height, 2))
+
 
 def printItems(classes, bboxes):
     sorted_items = sorted([x for x in zip(classes, bboxes)], key=lambda x:x[1][0])
@@ -112,6 +150,19 @@ def printItems(classes, bboxes):
     if(items == ''):
         items = ' ' 
     return items
+
+def find_near_bbox(moving_class, moving_bbox, pre_classes, pre_bboxes):
+    min_dist = 10000000
+    near = -1
+    for i in range(len(pre_classes)):
+        if(moving_class == pre_classes[i]):
+            dist = bboxDist(moving_bbox, pre_bboxes[i])
+            if(min_dist >= dist):
+                min_dist = dist
+                near = i
+    return near
+
+            
 
 if __name__ == '__main__':
     os.makedirs('masks', exist_ok=True)
@@ -156,6 +207,7 @@ if __name__ == '__main__':
 
     global cnt
     cnt = 0
+    pre_masks, pre_bboxes, pre_classes = None, None, None
 
     # images = glob.glob(os.path.join(sys.path[0], 'demo-frames', '*.png')) + \
     #         glob.glob(os.path.join(sys.path[0], 'demo-frames', '*.jpg'))
@@ -202,16 +254,37 @@ if __name__ == '__main__':
 
             if cnt > 1:
                 start_iou = time.perf_counter()
-                items = calc_iou(flow, masks, bboxes, classes, isDebug)
+                isMoving = False
+                items, isMoving = calc_iou(flow, masks, bboxes, classes, isDebug)
                 stop_iou = time.perf_counter()
                 # print("Calculate IoU:", (stop_iou - start_iou) * 1000, "ms")
                 # with open("runs/detect/exp/labels/out.txt", "r") as file:
                 #     inferred_labels = file.read()
+                
+                # if(isMoving):
+                #     preItems = ''
+                #     moving_rows = items.split("\n")
+                #     for i in range(len(moving_rows)-1):
+                #         moving_class, moving_bbox_concat = moving_rows[i].split(",")[1:3]
+                #         moving_bbox = moving_bbox_concat.split("/")
+                #         near_bb = find_near_bbox(moving_class, moving_bbox, pre_classes, pre_bboxes)
+                #         if(near_bb >= 0):
+                #             preItems += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[near_bb]], classes[near_bb], bboxes[near_bb][0]/img_width, bboxes[near_bb][1]/img_height, bboxes[near_bb][2]/img_width - bboxes[near_bb][0]/img_width, bboxes[near_bb][3]/img_height - bboxes[near_bb][1]/img_height, 1, "near")
+                #     items = preItems
+
+                # if(isMoving):
+                #     mm_status.WriteString('mvck')
+                #     while mm_status.ReadString() in ['sent', 'frst', 'mvck']:
+                #         pass
+                #     flow = mm_image_out.ReadImage()
+                # pre_items, pre_isMoving = calc_iou(flow, pre_masks, bboxes, classes, isDebug)
+
                 clientsock.send(bytes(items, 'utf-8'))
                 # print(items)
             else: 
                 print('')
                 clientsock.send(bytes('person 0 0.253125 0.559896 0.240625 0.4375 0.679568', 'utf-8'))
+            pre_masks, pre_bboxes, pre_classes = masks, bboxes, classes
     except KeyboardInterrupt:
         mm_image_in.dispose()
         mm_image_out.dispose()
