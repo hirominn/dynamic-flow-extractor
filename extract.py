@@ -81,7 +81,7 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
     isMoving = False
     movingItems = []
     for j in range(len(masks)):
-        if(diff_from_env[j] >= 7.5 and diff_from_hand[j] <= 4.0 and isHand(classes[j])): 
+        if(diff_from_env[j] >= 4.0 and diff_from_hand[j] <= 3.0 and not isHand(classes[j])): 
             print('{}, hand_dist:{}'.format(class_names[classes[j]],lenFromHand(bboxes[j], hand_box)))
             print('{}, x[0]:{},x[1]:{},diff_env:{:0>4},diff_hand:{:0>4}\n'.format(class_names[classes[j]],obj_flows[j][0] * 180 * 2, obj_flows[j][1] * 255, diff_from_env[j], diff_from_hand[j]))
             movingItems.append(j)
@@ -121,10 +121,10 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
 
 def isHand(classId):
     if(classId == 0): return True
-    else: return True
+    else: return False
 
 def lenFromHand(itemBox, handBox):
-    return np.sqrt(pow((itemBox[0]/img_width + itemBox[2]/img_width)/2 - (handBox[0]/img_width + handBox[2]/img_width)/2, 2) + pow(itemBox[1]/img_height - handBox[1]/img_height, 2))
+    return np.sqrt(pow((itemBox[0]/img_width + itemBox[2]/img_width)/2 - handBox[0]/img_width, 2) + pow(itemBox[1]/img_height - handBox[1]/img_height, 2))
 
 def printItems(classes, bboxes):
     sorted_items = sorted([x for x in zip(classes, bboxes)], key=lambda x:x[1][0])
@@ -133,8 +133,6 @@ def printItems(classes, bboxes):
     #     items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, 0, "far")    
     for j in sorted_items:
         items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[j[0]], j[0], j[1][0]/img_width, j[1][1]/img_height, j[1][2]/img_width - j[1][0]/img_width, j[1][3]/img_height - j[1][1]/img_height, 0, "far")    
-    if(items == ''):
-        items = ' ' 
     return items
             
 def mask_class(masks, bboxes, classes):
@@ -239,6 +237,7 @@ if __name__ == '__main__':
                 start_iou = time.perf_counter()
                 items = calc_iou(flow, masks, bboxes, classes, isDebug)
                 stop_iou = time.perf_counter()
+                if(items == ''): items = ' '
                 clientsock.send(bytes(items, 'utf-8'))
             else: 
                 print('')
