@@ -222,6 +222,8 @@ if __name__ == '__main__':
             if(isDebug): cv.imwrite('result/camera_image.jpg', cam_image)
             # cv.imwrite('data_0531/camera_image_{:0>4}.jpg'.format(cnt), cam_image)
 
+            # generate mask
+            masks, bboxes, classes = gen_mask.gen_mask(net, cam_image)
             masks, bboxes, classes = mask_class(masks, bboxes, classes)
             mm_image_in.WriteImage(cam_image)
             if cnt == 1:
@@ -229,8 +231,6 @@ if __name__ == '__main__':
             else:
                 mm_status.WriteString('sent')
 
-            # generate mask
-            masks, bboxes, classes = gen_mask.gen_mask(net, cam_image)
             while mm_status.ReadString() in ['sent', 'frst']:
                 pass
             flow = mm_image_out.ReadImage()
