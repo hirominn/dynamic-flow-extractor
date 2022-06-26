@@ -19,10 +19,17 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
     if(isDebug): cv.imwrite('result/flow.png', flow)
     env_flow = flow
 
+    if len(masks) == 0:
+        return items
+
     # end if the image has no hand
     if next((f for f in classes if f == 0), None) == None:
         print('no hands')
         return printItems(classes, bboxes)
+
+    if sum(1 if i == 0 else 0 for i in classes) > 1:
+        print('multi hands')
+        return items
 
     print(classes)
 
