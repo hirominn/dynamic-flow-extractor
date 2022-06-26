@@ -187,14 +187,14 @@ if __name__ == '__main__':
             buffer_size = int.from_bytes(clientsock.recv(8), 'little') # int64 / 8 = 8
             clientsock.send(bytes('received', 'utf-8'))
             data = b''
+            try:
             while len(data) < buffer_size :
-                try:
                     diffdata = clientsock.recv(buffer_size)
-                except:
-                    print("exception!")
-                    diffdata = b''
                 data += diffdata
             tmp = np.frombuffer(data, np.uint8, -1)
+            except:
+                print("exception!")
+                continue
             try:
                 img = cv.imdecode(tmp, cv.IMREAD_COLOR)
             except:
