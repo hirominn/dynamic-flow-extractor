@@ -130,6 +130,16 @@ def printItems(classes, bboxes):
         items = ' ' 
     return items
             
+def mask_class(masks, bboxes, classes):
+    allow_classes = [0, 41]
+    new_masks, new_bboxes, new_classes = [], [], []
+    for i in range(len(masks)):
+        if classes[i] in allow_classes:
+            new_masks.append(masks[i])
+            new_bboxes.append(bboxes[i])
+            new_classes.append(classes[i])
+    return new_masks, new_bboxes, new_classes
+
 if __name__ == '__main__':
     os.makedirs('masks', exist_ok=True)
     os.makedirs('result', exist_ok=True)
@@ -205,6 +215,7 @@ if __name__ == '__main__':
             if(isDebug): cv.imwrite('result/camera_image.jpg', cam_image)
             # cv.imwrite('data_0531/camera_image_{:0>4}.jpg'.format(cnt), cam_image)
 
+            masks, bboxes, classes = mask_class(masks, bboxes, classes)
             mm_image_in.WriteImage(cam_image)
             if cnt == 1:
                 mm_status.WriteString('frst')
