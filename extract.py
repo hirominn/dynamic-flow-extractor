@@ -14,6 +14,7 @@ from util import mmap_manager
 from yolact import gen_mask, yolact
 
 def calc_iou(flow, masks, bboxes, classes, isDebug):
+def calc_iou(image, flow, masks, bboxes, classes, pre_masks, pre_bboxes, pre_classes, isDebug):
     items = ''
 
     if(isDebug): cv.imwrite('result/flow.png', flow)
@@ -93,13 +94,32 @@ def calc_iou(flow, masks, bboxes, classes, isDebug):
             else:
                 handDist = "far"
             movingRate = 1
+            min_dist = 2
+            cand = -1
+            for i in range(len(pre_bboxes)):
+                if classes[j] != pre_classes[i]:
+                    continue
+                pre_x, pre_y, now_x, now_y = pre_bboxes[i][0]/img_width, pre_bboxes[i][1]/img_height, bboxes[j][0]/img_width, bboxes[j][1]/img_height
+                now_dist = math.sqrt((now_x - pre_x)**2 + (now_y - pre_y)**2)
+                if min_dist > now_dist:
+                    min_dist = now_dist
+                    cand = i
+            if cand == -1:
             items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, handDist)
     else:
+                items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[pre_classes[cand]], pre_classes[cand], pre_bboxes[cand][0]/img_width, pre_bboxes[cand][1]/img_height, pre_bboxes[cand][2]/img_width - pre_bboxes[cand][0]/img_width, pre_bboxes[cand][3]/img_height - pre_bboxes[cand][1]/img_height, movingRate, handDist)
+                print('{},{},{}/{}/{}/{},{},{}\n'.format(class_names[pre_classes[cand]], pre_classes[cand], pre_bboxes[cand][0]/img_width, pre_bboxes[cand][1]/img_height, pre_bboxes[cand][2]/img_width - pre_bboxes[cand][0]/img_width, pre_bboxes[cand][3]/img_height - pre_bboxes[cand][1]/img_height, movingRate, handDist))
+    else:
+        no_near = True
+        no_near_len = 10
         for j in range(len(masks)):
             if(lenFromHand(bboxes[j], hand_box) < 0.20):
                 handDist = "near"
+                if(not isHand(classes[j])): no_near = False
             else:
                 handDist = "far"
+                if(not isHand(classes[j]) and no_near_len > lenFromHand(bboxes[j], hand_box)):
+                    no_near_len = lenFromHand(bboxes[j], hand_box)
             movingRate = 0
             items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, handDist)
     if(items == ''): items = ' '
@@ -212,6 +232,8 @@ if __name__ == '__main__':
                 continue
             try:
                 img = cv.imdecode(tmp, cv.IMREAD_COLOR)
+                cam_image = cv.resize(img, dsize=(640, 384), interpolation = cv.INTER_NEAREST)
+                cam_image = cv.resize(cam_image, dsize=(img_width, img_height), interpolation = cv.INTER_NEAREST)
             except:
                 clientsock.send(bytes('person 0 0.253125 0.559896 0.240625 0.4375 0.679568', 'utf-8'))
                 continue
@@ -229,19 +251,21 @@ if __name__ == '__main__':
             else:
                 mm_status.WriteString('sent')
 
+            masks, bboxes, classes = gen_mask.gen_mask(net, cam_image)
+            masks, bboxes, classes = mask_class(masks, bboxes, classes)
+
             while mm_status.ReadString() in ['sent', 'frst']:
                 pass
             flow = mm_image_out.ReadImage()
 
             if cnt > 1:
-                start_iou = time.perf_counter()
-                items = calc_iou(flow, masks, bboxes, classes, isDebug)
-                stop_iou = time.perf_counter()
+                items = calc_iou(cam_image, flow, masks, bboxes, classes, pre_masks, pre_bboxes, pre_classes, isDebug)
                 if(items == ''): items = ' '
                 clientsock.send(bytes(items, 'utf-8'))
             else: 
                 print('')
                 clientsock.send(bytes('person 0 0.253125 0.559896 0.240625 0.4375 0.679568', 'utf-8'))
+            pre_masks, pre_bboxes, pre_classes = masks, bboxes, classes
     except KeyboardInterrupt:
         mm_image_in.dispose()
         mm_image_out.dispose()
