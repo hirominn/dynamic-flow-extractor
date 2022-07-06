@@ -13,7 +13,9 @@ from scipy.spatial import distance
 from util import mmap_manager
 from yolact import gen_mask, yolact
 
-def calc_iou(flow, masks, bboxes, classes, isDebug):
+from PIL import Image
+from PIL import ImageDraw
+
 def calc_iou(image, flow, masks, bboxes, classes, pre_masks, pre_bboxes, pre_classes, isDebug):
     items = ''
 
@@ -122,7 +124,18 @@ def calc_iou(image, flow, masks, bboxes, classes, pre_masks, pre_bboxes, pre_cla
                     no_near_len = lenFromHand(bboxes[j], hand_box)
             movingRate = 0
             items += '{},{},{}/{}/{}/{},{},{}\n'.format(class_names[classes[j]], classes[j], bboxes[j][0]/img_width, bboxes[j][1]/img_height, bboxes[j][2]/img_width - bboxes[j][0]/img_width, bboxes[j][3]/img_height - bboxes[j][1]/img_height, movingRate, handDist)
-    if(items == ''): items = ' '
+        # Draw Dot
+        # if(no_near): 
+        #     cv.imwrite('data_0626/no_near_{:0>4}_camera_image.jpg'.format(cnt), image)            
+        #     cv.imwrite('data_0626/no_near_{:0>4}_env_flow.jpg'.format(cnt), env_flow)           
+        #     print(no_near_len)
+        #     img = Image.open('data_0626/no_near_{:0>4}_camera_image.jpg'.format(cnt))
+        #     d = ImageDraw.Draw(img)
+        #     for i in range(len(classes)):
+        #         if(classes[i] == 41):
+        #             d.ellipse([((bboxes[i][0]+bboxes[i][2])/2-3, (bboxes[i][1]+bboxes[i][3])/2-3), ((bboxes[i][0]+bboxes[i][2])/2+3, (bboxes[i][1]+bboxes[i][3])/2+3)], fill='red', outline='lime', width=1)
+        #     d.ellipse([(hand_box[0]-3, hand_box[1]-3), (hand_box[0]+3, hand_box[1]+3)], fill='blue', outline='lime', width=1)
+        #     img.save('data_0626/no_near_{:0>4}_camera_image_dot.jpg'.format(cnt))
 
     if(isDebug):
         moved_object_image = np.zeros((img_height, img_width), dtype=np.uint8)
